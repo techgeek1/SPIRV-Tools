@@ -382,6 +382,8 @@ typedef struct spv_context_t spv_context_t;
 
 typedef struct spv_validator_options_t spv_validator_options_t;
 
+typedef struct spv_optimizer_t spv_optimizer_t;
+
 typedef struct spv_optimizer_options_t spv_optimizer_options_t;
 
 typedef struct spv_reducer_options_t spv_reducer_options_t;
@@ -395,6 +397,8 @@ typedef spv_binary_t* spv_binary;
 typedef spv_text_t* spv_text;
 typedef spv_position_t* spv_position;
 typedef spv_diagnostic_t* spv_diagnostic;
+typedef const spv_const_optimizer_t* spv_const_optimizer;
+typedef spv_optimizer_t* spv_optimizer;
 typedef const spv_context_t* spv_const_context;
 typedef spv_context_t* spv_context;
 typedef spv_validator_options_t* spv_validator_options;
@@ -758,6 +762,44 @@ SPIRV_TOOLS_EXPORT spv_result_t spvBinaryParse(
     const spv_const_context context, void* user_data, const uint32_t* words,
     const size_t num_words, spv_parsed_header_fn_t parse_header,
     spv_parsed_instruction_fn_t parse_instruction, spv_diagnostic* diagnostic);
+
+// Creates an optimizer object
+SPIRV_TOOLS_EXPORT spv_optimizer spvOptimizerCreate(
+    spv_target_env env);
+
+SPIRV_TOOLS_EXPORT void spvOptimizerDestroy(
+    spv_optimizer optimizer);
+
+SPIRV_TOOLS_EXPORT void spvOptimizerRegisterPerformancePasses(
+    spv_optimizer optimizer);
+
+SPIRV_TOOLS_EXPORT void spvOptimizerRegisterSizePasses(
+    spv_optimizer optimizer);
+
+SPIRV_TOOLS_EXPORT void spvOptimizerRegisterWebGPUPasses(
+    spv_optimizer optimizer);
+
+SPIRV_TOOLS_EXPORT void spvOptimizerRegisterLegalizationPasses(
+    spv_optimizer optimizer);
+
+SPIRV_TOOLS_EXPORT void spvOptimizerSetTargetEnv(
+    spv_optimizer optimizer,
+    spv_target_env env);
+
+SPIRV_TOOLS_EXPORT bool spvOptimizerRun(
+    spv_const_optimizer optimizer,
+    const uint32_t* original_binary, 
+    const size_t original_binary_size,
+    spv_binary* optimized_binary);
+
+SPIRV_TOOLS_EXPORT bool spvOptimizerRunWithOptions(
+    spv_const_optimizer optimizer,
+    const uint32_t* original_binary,
+    const size_t original_binary_size,
+    spv_binary* optimized_binary,
+    const spv_optimizer_options opt_options);
+
+// TODO: Pass creation api 
 
 #ifdef __cplusplus
 }

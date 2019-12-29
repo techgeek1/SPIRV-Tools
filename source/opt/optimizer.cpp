@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "source/table.h"
 #include "source/opt/build_module.h"
 #include "source/opt/graphics_robust_access_pass.h"
 #include "source/opt/log.h"
@@ -29,6 +30,87 @@
 #include "source/spirv_optimizer_options.h"
 #include "source/util/make_unique.h"
 #include "source/util/string_utils.h"
+#include "include/spirv-tools/libspirv.h"
+
+// Optimizer API
+
+// Opaque struct for passing optimizer over the C api
+struct svp_optimizer_t;
+
+spv_optimizer spvOptimizerCreate(spv_target_env env) {
+  return reinterpret_cast<spv_optimizer>(
+      new spvtools::Optimizer(env));
+}
+
+void spvOptimizerDestroy(spv_optimizer optimizer) {
+  delete reinterpret_cast<spvtools::Optimizer*>(optimizer);
+}
+
+void spvOptimizerRegisterPerformancePasses(spv_optimizer optimizer) {
+  reinterpret_cast<spvtools::Optimizer*>(optimizer)->RegisterPerformancePasses();
+}
+
+void spvOptimizerRegisterSizePasses(spv_optimizer optimizer) {
+  reinterpret_cast<spvtools::Optimizer*>(optimizer)->RegisterSizePasses();
+}
+
+void spvOptimizerRegisterWebGPUPasses(spv_optimizer optimizer) {
+  reinterpret_cast<spvtools::Optimizer*>(optimizer)->RegisterWebGPUPasses();
+}
+
+void spvOptimizerRegisterLegalizationPasses(spv_optimizer optimizer) {
+  reinterpret_cast<spvtools::Optimizer*>(optimizer)->RegisterLegalizationPasses();
+}
+
+void spvOptimizerSetTargetEnv(spv_optimizer optimizer,
+                              spv_target_env env) {
+  reinterpret_cast<spvtools::Optimizer*>(optimizer)->SetTargetEnv(env);
+}
+
+bool spvOptimizerRun(spv_const_optimizer optimizer,
+                     const uint32_t* original_binary, 
+                     const size_t original_binary_size,
+                     spv_binary* optimized_binary) {
+  // Forward call with default options
+  return spvOptimizerRun(
+      optimizer, original_binary, original_binary_size,
+      OptimizerOptions(), optimized_binary);
+}
+
+bool spvOptimizerRunWithOptions(spv_const_optimizer optimizer,
+                                const uint32_t* original_binary,
+                                const size_t original_binary_size,
+                                spv_binary* optimized_binary,
+                                const spv_optimizer_options opt_options) {
+  // Run the optimizer on the provided data, emitting
+  // the result into `optimizedBinary`
+  std::vector<uint32_t> optimizedBinary();
+
+  bool success = reinterpret_cast<spvtools::Optimizer*>(optimizer)->Run(
+      original_binary, original_binary_size,
+      opt_options, &optimizedBinary);
+
+  // Copy the result into a `spv_binary_t`
+  size_t wordCount = optimizedBinary.size();
+  uint32_t* code = new uint32_t[wordCount];
+  if (!code) return false;
+  memcpy(code, 
+         optimizedBinary.data(), 
+         sizeof(uint32_t) * wordCount);
+
+  spv_binary binary = new spv_binary_t();
+  if (!binary) {
+    delete[] code;
+    return false;
+  }
+
+  binary->code = code;
+  binary->wordCount = wordCount;
+
+  *optimized_binary = binary;
+
+  return success;
+}
 
 namespace spvtools {
 
