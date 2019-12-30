@@ -797,6 +797,7 @@ SPIRV_TOOLS_EXPORT bool spvOptimizerRegisterPassFromFlag(
     const char* flag);
 
 SPIRV_TOOLS_EXPORT bool spvOptimizerFlagHasValidForm(
+    spv_optimizer optimizer,
     const char* flag);
 
 SPIRV_TOOLS_EXPORT void spvOptimizerSetTargetEnv(

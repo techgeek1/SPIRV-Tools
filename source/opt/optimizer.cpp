@@ -85,7 +85,8 @@ bool spvOptimizerRegisterPassFromFlag(spv_optimizer optimizer,
   return optimizer->impl.RegisterPassFromFlag(cppFlag);
 }
 
-bool spvOptimizerFlagHasValidForm(const char* flag) {
+bool spvOptimizerFlagHasValidForm(spv_optimizer optimizer,
+                                  const char* flag) {
     std::string cppFlag(flag);
 
     return optimizer->impl.FlagHasValidForm(cppFlag);
