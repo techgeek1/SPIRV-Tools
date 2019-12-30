@@ -33,38 +33,67 @@
 #include "include/spirv-tools/libspirv.h"
 
 // Optimizer API
-
-// Opaque struct for passing optimizer over the C api
-struct svp_optimizer_t;
+struct spv_optimizer_t {
+  // Private impl for internal use only
+  spvtools::Optimizer impl;
+}
 
 spv_optimizer spvOptimizerCreate(spv_target_env env) {
-  return reinterpret_cast<spv_optimizer>(
-      new spvtools::Optimizer(env));
+  return new spv_optimizer_t {spvtools::Optimizer(env)};
 }
 
 void spvOptimizerDestroy(spv_optimizer optimizer) {
-  delete reinterpret_cast<spvtools::Optimizer*>(optimizer);
+  delete optimizer;
 }
 
 void spvOptimizerRegisterPerformancePasses(spv_optimizer optimizer) {
-  reinterpret_cast<spvtools::Optimizer*>(optimizer)->RegisterPerformancePasses();
+  optimizer->impl.RegisterPerformancePasses();
 }
 
 void spvOptimizerRegisterSizePasses(spv_optimizer optimizer) {
-  reinterpret_cast<spvtools::Optimizer*>(optimizer)->RegisterSizePasses();
+  optimizer->impl.RegisterSizePasses();
 }
 
-void spvOptimizerRegisterWebGPUPasses(spv_optimizer optimizer) {
-  reinterpret_cast<spvtools::Optimizer*>(optimizer)->RegisterWebGPUPasses();
+void spvOptimizerRegisterVulkanToWebGPUPasses(spv_optimizer optimizer) {
+  optimizer->impl.RegisterVulkanToWebGPUPasses();
+}
+
+void spvOptimizerRegisterWebGPUToVulkanPsses(spv_optimizer optimizer) {
+  optimizer->impl.RegisterWebGPUToVulkanPasses();
 }
 
 void spvOptimizerRegisterLegalizationPasses(spv_optimizer optimizer) {
-  reinterpret_cast<spvtools::Optimizer*>(optimizer)->RegisterLegalizationPasses();
+  optimizer->impl.RegisterLegalizationPasses();
+}
+
+bool spvOptimizerRegisterPassesFromFlags(spv_optimizer optimizer,
+                                         const char** flags,
+                                         size_t num_flags) {
+  for (size_t i = 0; i < num_flags; i++) {
+    if (!spvOptimizerRegisterPassFromFlag(optimizer, *flags[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool spvOptimizerRegisterPassFromFlag(spv_optimizer optimizer,
+                                      const char* flag) {
+  std::string cppFlag(flag);
+
+  return optimizer->impl.RegisterPassFromFlag(cppFlag);
+}
+
+bool spvOptimizerFlagHasValidForm(const char* flag) {
+    std::string cppFlag(flag);
+
+    return optimizer->impl.FlagHasValidForm(cppFlag);
 }
 
 void spvOptimizerSetTargetEnv(spv_optimizer optimizer,
                               spv_target_env env) {
-  reinterpret_cast<spvtools::Optimizer*>(optimizer)->SetTargetEnv(env);
+  optimizer->impl.SetTargetEnv(env);
 }
 
 bool spvOptimizerRun(spv_const_optimizer optimizer,
@@ -72,9 +101,15 @@ bool spvOptimizerRun(spv_const_optimizer optimizer,
                      const size_t original_binary_size,
                      spv_binary* optimized_binary) {
   // Forward call with default options
-  return spvOptimizerRun(
-      optimizer, original_binary, original_binary_size,
-      OptimizerOptions(), optimized_binary);
+  spv_optimizer_options opt = spvOptimizerOptionsCreate();
+  
+  bool success = spvOptimizerRun(
+      optimizer,original_binary, original_binary_size,
+      opt, optimized_binary);
+
+  spvOptimizerOptionsDestroy(opt);
+  
+  return success;
 }
 
 bool spvOptimizerRunWithOptions(spv_const_optimizer optimizer,

@@ -386,6 +386,8 @@ typedef struct spv_optimizer_t spv_optimizer_t;
 
 typedef struct spv_optimizer_options_t spv_optimizer_options_t;
 
+typedef struct spv_optimizer_pass_token_t spv_optimizer_pass_token_t;
+
 typedef struct spv_reducer_options_t spv_reducer_options_t;
 
 typedef struct spv_fuzzer_options_t spv_fuzzer_options_t;
@@ -776,11 +778,26 @@ SPIRV_TOOLS_EXPORT void spvOptimizerRegisterPerformancePasses(
 SPIRV_TOOLS_EXPORT void spvOptimizerRegisterSizePasses(
     spv_optimizer optimizer);
 
-SPIRV_TOOLS_EXPORT void spvOptimizerRegisterWebGPUPasses(
+SPIRV_TOOLS_EXPORT void spvOptimizerRegisterVulkanToWebGPUPasses(
+    spv_optimizer optimizer);
+
+SPIRV_TOOLS_EXPORT void spvOptimizerRegisterWebGPUToVulkanPasses(
     spv_optimizer optimizer);
 
 SPIRV_TOOLS_EXPORT void spvOptimizerRegisterLegalizationPasses(
     spv_optimizer optimizer);
+
+SPIRV_TOOLS_EXPORT bool spvOptimizerRegisterPassesFromFlags(
+    spv_optimizer optimizer,
+    const char** flags,
+    size_t num_flags);
+
+SPIRV_TOOLS_EXPORT bool spvOptimizerRegisterPassFromFlag(
+    spv_optimizer optimizer,
+    const char* flag);
+
+SPIRV_TOOLS_EXPORT bool spvOptimizerFlagHasValidForm(
+    const char* flag);
 
 SPIRV_TOOLS_EXPORT void spvOptimizerSetTargetEnv(
     spv_optimizer optimizer,
@@ -798,8 +815,6 @@ SPIRV_TOOLS_EXPORT bool spvOptimizerRunWithOptions(
     const size_t original_binary_size,
     spv_binary* optimized_binary,
     const spv_optimizer_options opt_options);
-
-// TODO: Pass creation api 
 
 #ifdef __cplusplus
 }
