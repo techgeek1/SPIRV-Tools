@@ -34,12 +34,15 @@
 
 // Optimizer API
 struct spv_optimizer_t {
+    spv_optimizer_t(spv_target_env env)
+        : impl_(env) { }
+
   // Private impl for internal use only
-  spvtools::Optimizer impl;
-}
+  spvtools::Optimizer impl_;
+};
 
 spv_optimizer spvOptimizerCreate(spv_target_env env) {
-  return new spv_optimizer_t {spvtools::Optimizer(env)};
+  return new spv_optimizer_t(env);
 }
 
 void spvOptimizerDestroy(spv_optimizer optimizer) {
@@ -47,30 +50,30 @@ void spvOptimizerDestroy(spv_optimizer optimizer) {
 }
 
 void spvOptimizerRegisterPerformancePasses(spv_optimizer optimizer) {
-  optimizer->impl.RegisterPerformancePasses();
+  optimizer->impl_.RegisterPerformancePasses();
 }
 
 void spvOptimizerRegisterSizePasses(spv_optimizer optimizer) {
-  optimizer->impl.RegisterSizePasses();
+  optimizer->impl_.RegisterSizePasses();
 }
 
 void spvOptimizerRegisterVulkanToWebGPUPasses(spv_optimizer optimizer) {
-  optimizer->impl.RegisterVulkanToWebGPUPasses();
+  optimizer->impl_.RegisterVulkanToWebGPUPasses();
 }
 
-void spvOptimizerRegisterWebGPUToVulkanPsses(spv_optimizer optimizer) {
-  optimizer->impl.RegisterWebGPUToVulkanPasses();
+void spvOptimizerRegisterWebGPUToVulkanPasses(spv_optimizer optimizer) {
+  optimizer->impl_.RegisterWebGPUToVulkanPasses();
 }
 
 void spvOptimizerRegisterLegalizationPasses(spv_optimizer optimizer) {
-  optimizer->impl.RegisterLegalizationPasses();
+  optimizer->impl_.RegisterLegalizationPasses();
 }
 
 bool spvOptimizerRegisterPassesFromFlags(spv_optimizer optimizer,
                                          const char** flags,
                                          size_t num_flags) {
   for (size_t i = 0; i < num_flags; i++) {
-    if (!spvOptimizerRegisterPassFromFlag(optimizer, *flags[i])) {
+    if (!spvOptimizerRegisterPassFromFlag(optimizer, flags[i])) {
       return false;
     }
   }
@@ -82,18 +85,19 @@ bool spvOptimizerRegisterPassFromFlag(spv_optimizer optimizer,
                                       const char* flag) {
   std::string cppFlag(flag);
 
-  return optimizer->impl.RegisterPassFromFlag(cppFlag);
+  return optimizer->impl_.RegisterPassFromFlag(cppFlag);
 }
 
-bool spvOptimizerFlagHasValidForm(const char* flag) {
+bool spvOptimizerFlagHasValidForm(spv_optimizer optimizer,
+                                  const char* flag) {
     std::string cppFlag(flag);
 
-    return optimizer->impl.FlagHasValidForm(cppFlag);
+    return optimizer->impl_.FlagHasValidForm(cppFlag);
 }
 
 void spvOptimizerSetTargetEnv(spv_optimizer optimizer,
                               spv_target_env env) {
-  optimizer->impl.SetTargetEnv(env);
+  optimizer->impl_.SetTargetEnv(env);
 }
 
 bool spvOptimizerRun(spv_const_optimizer optimizer,
@@ -101,13 +105,13 @@ bool spvOptimizerRun(spv_const_optimizer optimizer,
                      const size_t original_binary_size,
                      spv_binary* optimized_binary) {
   // Forward call with default options
-  spv_optimizer_options opt = spvOptimizerOptionsCreate();
+  spv_optimizer_options options = spvOptimizerOptionsCreate();
   
-  bool success = spvOptimizerRun(
+  bool success = spvOptimizerRunWithOptions(
       optimizer,original_binary, original_binary_size,
-      opt, optimized_binary);
+      optimized_binary, options);
 
-  spvOptimizerOptionsDestroy(opt);
+  spvOptimizerOptionsDestroy(options);
   
   return success;
 }
@@ -119,24 +123,22 @@ bool spvOptimizerRunWithOptions(spv_const_optimizer optimizer,
                                 const spv_optimizer_options opt_options) {
   // Run the optimizer on the provided data, emitting
   // the result into `optimizedBinary`
-  std::vector<uint32_t> optimizedBinary();
+  std::vector<uint32_t> optimizedBinary;
 
-  bool success = reinterpret_cast<spvtools::Optimizer*>(optimizer)->Run(
-      original_binary, original_binary_size,
-      opt_options, &optimizedBinary);
+  bool success = optimizer->impl_.Run(original_binary, original_binary_size,
+                          &optimizedBinary, opt_options);
 
   // Copy the result into a `spv_binary_t`
   size_t wordCount = optimizedBinary.size();
   uint32_t* code = new uint32_t[wordCount];
   if (!code) return false;
-  memcpy(code, 
-         optimizedBinary.data(), 
-         sizeof(uint32_t) * wordCount);
+  memcpy(code, optimizedBinary.data(), 
+          sizeof(uint32_t) * wordCount);
 
   spv_binary binary = new spv_binary_t();
   if (!binary) {
-    delete[] code;
-    return false;
+      delete[] code;
+      return false;
   }
 
   binary->code = code;

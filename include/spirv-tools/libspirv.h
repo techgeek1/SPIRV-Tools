@@ -399,7 +399,7 @@ typedef spv_binary_t* spv_binary;
 typedef spv_text_t* spv_text;
 typedef spv_position_t* spv_position;
 typedef spv_diagnostic_t* spv_diagnostic;
-typedef const spv_const_optimizer_t* spv_const_optimizer;
+typedef const spv_optimizer_t* spv_const_optimizer;
 typedef spv_optimizer_t* spv_optimizer;
 typedef const spv_context_t* spv_const_context;
 typedef spv_context_t* spv_context;
@@ -797,6 +797,7 @@ SPIRV_TOOLS_EXPORT bool spvOptimizerRegisterPassFromFlag(
     const char* flag);
 
 SPIRV_TOOLS_EXPORT bool spvOptimizerFlagHasValidForm(
+    spv_optimizer optimizer,
     const char* flag);
 
 SPIRV_TOOLS_EXPORT void spvOptimizerSetTargetEnv(
